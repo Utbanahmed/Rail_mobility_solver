@@ -209,14 +209,33 @@ Outputs produced:
 
 ## 6. Validation (results)
 
-<!-- VALIDATION_NUMBERS -->
-*(Filled from `figures/validation_report.txt`.)*
+All nine checks **PASS** (`figures/validation_report.txt`):
 
-Checks: section properties; Tool A ↔ Tool B dispersion overlay; two in-band
-peaks and the L=0.69→0.60 upward shift (Strand7 artifact); N_periods invariance
-and no-reflection (ALID emulates the infinite rail); modal signatures
-(web-node/torsion vs whole-section/bending, upper peak collapsing at the
-support); V1/V2 contrast; rigid-vs-meshed plate.
+| check | result |
+|---|---|
+| section | A/Ix/Iy within a few % of 60E1 — PASS |
+| dispersion overlay | Tool B 2D-FFT energy follows the Tool A branches (bending branch to ~425 Hz at the zone edge; low support mode ~150 Hz; head mode ~1225 Hz) — PASS |
+| two in-band peaks | present — PASS |
+| L-shift UP | Bloch zone-edge lateral bending rises with the shorter span (≈(0.69/0.60)²) — PASS |
+| N_periods invariant | dominant peak 1233 Hz (n_phys=5) vs 1242 Hz (n_phys=3) — PASS |
+| no reflection | residual mid-line in-band energy (late/peak) = 9.2×10⁻³ — PASS |
+| signatures | see below — PASS |
+| V1/V2 contrast | V1 in-band peaks {633, 675, 425} Hz vs V2 {442, 625}; V1 two-peak feature at the plate resonance — PASS |
+| plate rigid | plate elastic modes ≈ 3830 Hz ≫ band; rigid-body 556 Hz — PASS |
+
+**Signatures (from Tool A zone-edge eigenvectors), head/web/foot lateral
+amplitude + torsion fraction:**
+
+| f (Hz) | head | web | foot | torsion frac | identity |
+|---|---|---|---|---|---|
+| 425 | 1.00 | 0.78 | 0.45 | 0.07 | **bending** — whole section moves |
+| 430 | 1.00 | 0.78 | 0.45 | 0.08 | **bending** |
+| 724 | 0.59 | **0.02** | 1.00 | 0.91 | **torsion** — web is a lateral node |
+| 744 | 0.57 | **0.03** | 1.00 | 0.91 | **torsion** — web node |
+
+Exactly the node structure the hypothesis predicts: the torsion branch has the
+web as a lateral node (head and foot in antiphase), the bending branch moves the
+whole section.
 
 ---
 
@@ -250,14 +269,15 @@ What the 3D brick tools show:
 
 ## 8. Rigid mass vs meshed plate
 
-<!-- PLATE_NUMBERS -->
 The baseplate is modelled as a **rigid mass** (2 translational dofs + springs).
 Justification (computed in `validate.py`): the plate's first **elastic** bending
-mode sits far above the 0–1.6 kHz band, whereas the resonance that matters for
-the mobility is the **rigid-body** resonance of the plate on its springs
-(556 Hz). Since the plate does not flex within the band, the rigid-mass model is
-adequate; a meshed plate would add only out-of-band internal modes. Numbers in
-§6 / the validation report.
+mode is ≈ **3830 Hz** (clamped and free-free thin-plate estimates for the
+~0.22 m × 22 mm SGI plate), far above the 0–1.6 kHz band, whereas the resonance
+that matters for the mobility is the **rigid-body** resonance of the plate on its
+springs, **556 Hz**. Since the plate does not flex within the band, the
+rigid-mass model is adequate; a meshed plate would only add out-of-band internal
+modes. **Conclusion: a rigid mass is sufficient here; a meshed plate is not
+needed for the 0–1.6 kHz mobility.**
 
 ---
 
