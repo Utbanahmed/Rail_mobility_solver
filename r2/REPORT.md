@@ -265,6 +265,41 @@ What the 3D brick tools show:
   torsion branch enough to create a genuine crossing in-band is the open
   question, and is exactly what the section-offset caveat (§1, §8) is about.
 
+### 7.1 What the lower peak is, and polarisation
+
+Everything in the ~525/557 (model ~633/675) story is in the **lateral (X)**
+direction: the drive is a lateral head force, the mobility is lateral, the plate
+resonance quoted is the plate's **lateral** rigid-body bounce
+`√((kx_top+kx_bot)/m)/2π = 556 Hz`, the bending branch is lateral bending, and
+the torsion branch's *observable* is lateral (head and foot swing sideways in
+antiphase, web a lateral node). The FE model is full 3D (X, Y, Z dofs), so
+vertical-bending and axial modes also exist — they are simply not excited by a
+lateral drive and so are absent from the lateral point mobility.
+
+The lower peak is **not** a bending/elastic mode of the plate. The plate is a
+**rigid mass**; its first elastic bending mode is ≈ 3830 Hz (§8), far out of
+band. The only in-band plate resonance is its **rigid-body lateral bounce on the
+springs (556 Hz)**. Decomposing the V1 Bloch modes in the band (plate
+kinetic-energy fraction, torsion fraction) shows the lower peak is a **rail
+torsion/roll mode hybridised with that plate rigid-body resonance**:
+
+| f (Hz) | plate KE frac | torsion frac | character |
+|---|---|---|---|
+| 584 | 0.06 | 0.58 | rail torsion (plate quiet) |
+| 591–645 | 0.5–0.84 | 0.6–0.84 | **plate rigid-body bounce** (dressed up from 556) |
+| 631 | 0.07 | 0.53 | rail **torsion** — the lower peak |
+| 669 | 0.35 | 0.46 | rail **bending** — the upper peak |
+| 700–717 | 0.1–0.2 | ~0.1 | rail bending |
+
+Mechanism: the plate is bolted **under the foot**, so its lateral bounce pushes
+the **foot** sideways — which is exactly the rail's torsion/roll motion (foot vs
+head antiphase, web node). On the bare rail (V2) that torsion branch sits
+~710 Hz; the 556 Hz plate resonance hybridises with it and **drags it down**,
+splitting the pair into ~633 (more torsion) / ~675 (more bending). Remove the
+plate (V2) and the lower peak vanishes (torsion returns to ~710 Hz). Across the
+avoided crossing the labels blend — right at the peaks the modes are
+torsion/plate hybrids, not pure anything.
+
 ---
 
 ## 8. Rigid mass vs meshed plate
