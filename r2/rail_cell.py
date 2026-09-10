@@ -78,6 +78,18 @@ class Cfg:
     DY = 0.007          # m   target vertical row height (min element ~6 mm)
     REFINE = 1          # integer mesh-refinement factor (convergence studies)
 
+    # --- fillet-resolved section (gmsh conforming quad mesh) -----------------
+    # USE_GMSH=True replaces the axis-aligned staircase with a smooth,
+    # boundary-conforming all-quad mesh of the true (filleted) 60E1 outline.
+    # GMSH_H     : target element size (m).
+    # GMSH_FILLET: corner-rounding radius applied to the outline (mm).
+    # GMSH_FOOTSCALE: small foot-width compensation so the smoothed outline
+    #               still reproduces Iy (foot dominates lateral bending).
+    USE_GMSH = False
+    GMSH_H = 0.004
+    GMSH_FILLET = 2.0
+    GMSH_FOOTSCALE = 1.011
+
 
 # ---------------------------------------------------------------------------
 # UIC60 / 60E1 half-width profile  (validated: see verify_section)
@@ -98,7 +110,75 @@ def halfwidth(y):
 # ===========================================================================
 # 1.  CROSS-SECTION QUAD MESH  (axis-aligned active-element grid)
 # ===========================================================================
+def build_cross_section_gmsh(h=None, fillet_mm=None, foot_scale=None):
+    """
+    Fillet-resolved UIC60 cross-section: a smooth, boundary-conforming ALL-QUAD
+    mesh of the true (rounded) 60E1 outline, generated with gmsh (blossom
+    recombination).  Unlike the staircase, the boundary is smooth and the
+    elements are well shaped, so the torsion/warping behaviour and local
+    cross-section modes are captured properly (no jagged corners, no spurious
+    head-sway resonance from blocky junctions).  Returns (nodes2d, quads,
+    meshinfo) with the same interface as build_cross_section.
+    """
+    import gmsh
+    from scipy.ndimage import gaussian_filter1d
+    if h is None: h = Cfg.GMSH_H
+    if fillet_mm is None: fillet_mm = Cfg.GMSH_FILLET
+    if foot_scale is None: foot_scale = Cfg.GMSH_FOOTSCALE
+
+    # smooth (filleted) half-width profile, foot compensated for the rounding
+    yf = np.linspace(0, H_RAIL, 600)
+    hwf = np.interp(yf, _PROFILE_Y_MM * 1e-3, _PROFILE_HW_MM * 1e-3).copy()
+    hwf[yf < 0.045] *= foot_scale
+    sig = max(1.0, fillet_mm * 1e-3 / (yf[1] - yf[0]))
+    hwf = np.clip(gaussian_filter1d(hwf, sig, mode="nearest"), 3e-3, None)
+
+    npts = max(20, int(H_RAIL / h))
+    yc = np.linspace(0, H_RAIL, npts); hwc = np.interp(yc, yf, hwf)
+    gmsh.initialize(); gmsh.option.setNumber("General.Terminal", 0)
+    try:
+        gmsh.model.add("uic60")
+        geo = gmsh.model.geo
+        Rp = [geo.addPoint(hwc[i], yc[i], 0, h) for i in range(npts)]
+        Lp = [geo.addPoint(-hwc[i], yc[i], 0, h) for i in range(npts - 1, -1, -1)]
+        rs = geo.addSpline(Rp); top = geo.addLine(Rp[-1], Lp[0])
+        ls = geo.addSpline(Lp); bot = geo.addLine(Lp[-1], Rp[0])
+        geo.addPlaneSurface([geo.addCurveLoop([rs, top, ls, bot])]); geo.synchronize()
+        gmsh.option.setNumber("Mesh.MeshSizeMin", h)
+        gmsh.option.setNumber("Mesh.MeshSizeMax", h)
+        gmsh.option.setNumber("Mesh.Algorithm", 8)
+        gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 2)
+        gmsh.option.setNumber("Mesh.RecombineAll", 1)
+        gmsh.model.mesh.generate(2)
+        nt, nc, _ = gmsh.model.mesh.getNodes(); nc = nc.reshape(-1, 3)
+        tag2idx = {int(t): i for i, t in enumerate(nt)}
+        nodes = nc[:, :2].copy()
+        et, _, ENT = gmsh.model.mesh.getElements(2)
+        quads = []
+        for typ, conn in zip(et, ENT):
+            if typ == 3:
+                for q in conn.reshape(-1, 4):
+                    quads.append([tag2idx[int(t)] for t in q])
+    finally:
+        gmsh.finalize()
+    quads = np.array(quads, int)
+    used = np.unique(quads); remap = {o: i for i, o in enumerate(used)}
+    nodes = nodes[used]; quads = np.vectorize(remap.get)(quads)
+    # enforce CCW (positive signed area) so hex Jacobians are positive
+    for k, q in enumerate(quads):
+        p = nodes[q]
+        a = sum(p[i, 0] * p[(i + 1) % 4, 1] - p[(i + 1) % 4, 0] * p[i, 1] for i in range(4))
+        if a < 0:
+            quads[k] = q[::-1]
+    foot_cs = np.where(nodes[:, 1] < 1e-6)[0]
+    meshinfo = {"foot_cs": foot_cs, "nodes2d": nodes, "Ncs": len(nodes),
+                "gmsh": True, "h": h}
+    return nodes, quads, meshinfo
+
+
 def build_cross_section(dy_target=Cfg.DY, xb_half_mm=None, refine=Cfg.REFINE):
+    if Cfg.USE_GMSH:
+        return build_cross_section_gmsh()
     """
     Quad-mesh the UIC60 cross-section with AXIS-ALIGNED rectangular elements.
 
