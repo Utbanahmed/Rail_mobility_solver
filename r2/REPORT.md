@@ -1,5 +1,16 @@
 # r2 — 3D brick Bloch + transient tools for the Delkor-supported UIC60 rail
 
+> **⚠️ STATUS: CONCLUSIONS SUPERSEDED — THE PROBLEM IS OPEN.**
+> This report documents the *tools* (which are sound) and an *early* mechanistic
+> story that has since been revised and, in part, refuted (see `HANDOVER.md §3`).
+> In particular: the measured 525/557 feature is **not** explained by a validated
+> model yet; "525 = torsional pinned-pinned" is **wrong** (torsion pin-pin is
+> ~690 Hz, bending ~400 Hz — neither at 525/557); the section‑torsion offset and
+> the element‑locking limitation are unresolved. **Read `HANDOVER.md` for the
+> current (open) state, the measured target, the pitfalls, and the plan.**
+> The tool descriptions, section verification, ALID/validation results, and V1/V2
+> mechanics below remain valid.
+
 Full-wave, in-house (numpy + scipy.sparse), no imported mesh, no black-box FE.
 Bottom line first, then the build, the results, the hypothesis test, and an
 honest account of what matches and what does not.
